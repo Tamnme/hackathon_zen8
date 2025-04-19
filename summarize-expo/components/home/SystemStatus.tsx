@@ -5,23 +5,30 @@ import { Text } from '@/components/ui/Text';
 import { useAppSelector } from '@/store';
 import React, { useState } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { NotionConfigPopup } from './NotionConfigPopup';
 import { SlackConfigPopup } from './SlackConfigPopup';
 
 interface SystemStatusProps {
-  notionStatus: 'success' | 'error' | 'unverified';
   onSlackConfigChange?: (status: 'success' | 'error' | 'unverified') => void;
+  onNotionConfigChange?: (status: 'success' | 'error' | 'unverified') => void;
 }
 
-export function SystemStatus({ notionStatus, onSlackConfigChange }: SystemStatusProps) {
+export function SystemStatus({ onSlackConfigChange, onNotionConfigChange }: SystemStatusProps) {
   const [showSlackPopup, setShowSlackPopup] = useState(false);
-  const { slackConfig } = useAppSelector((state) => state.user);
-
-  console.log('slackConfig', slackConfig);
+  const [showNotionPopup, setShowNotionPopup] = useState(false);
+  const { slackConfig, notionConfig } = useAppSelector((state) => state.user);
 
   const slackStatus: 'success' | 'error' | 'unverified' =
     !slackConfig.token || !slackConfig.email
       ? 'unverified'
       : slackConfig.isVerified
+        ? 'success'
+        : 'error';
+
+  const notionStatus: 'success' | 'error' | 'unverified' =
+    !notionConfig.secret || !notionConfig.pageId
+      ? 'unverified'
+      : notionConfig.isVerified
         ? 'success'
         : 'error';
 
@@ -42,11 +49,16 @@ export function SystemStatus({ notionStatus, onSlackConfigChange }: SystemStatus
     onSlackConfigChange?.('success');
   };
 
+  const handleNotionConfigSuccess = () => {
+    onNotionConfigChange?.('success');
+  };
+
   return (
     <View style={styles.section}>
       <Text variant="h2">System Status</Text>
       <Card>
         <TouchableOpacity
+          disabled
           style={styles.statusRow}
           onPress={() => setShowSlackPopup(true)}
         >
@@ -57,20 +69,30 @@ export function SystemStatus({ notionStatus, onSlackConfigChange }: SystemStatus
             label={getStatusLabel(slackStatus)} 
           />
         </TouchableOpacity>
-        <View style={styles.statusRow}>
+        <TouchableOpacity
+          disabled
+          style={styles.statusRow}
+          onPress={() => setShowNotionPopup(true)}
+        >
           <IconSymbol name="doc.text" size={24} color="black" />
           <Text style={styles.statusLabel}>Notion Config</Text>
           <StatusIndicator 
             status={notionStatus} 
             label={getStatusLabel(notionStatus)} 
           />
-        </View>
+        </TouchableOpacity>
       </Card>
 
       <SlackConfigPopup
         visible={showSlackPopup}
         onClose={() => setShowSlackPopup(false)}
         onSuccess={handleSlackConfigSuccess}
+      />
+
+      <NotionConfigPopup
+        visible={showNotionPopup}
+        onClose={() => setShowNotionPopup(false)}
+        onSuccess={handleNotionConfigSuccess}
       />
     </View>
   );

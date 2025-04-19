@@ -29,13 +29,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="trigger"
-        options={{
-          title: 'Trigger',
-          tabBarIcon: ({ color }) => <IconSymbol size={24} name="plus" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="history"
         options={{
           title: 'History',

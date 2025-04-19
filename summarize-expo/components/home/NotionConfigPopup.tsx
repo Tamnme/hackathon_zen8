@@ -1,30 +1,34 @@
 import { settingsApi } from '@/api/settings';
-import { slackConfigApi } from '@/api/slack';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { TextInput } from '@/components/ui/TextInput';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { setLoading, setSlackConfig } from '@/store/slices/userSlice';
+import { setLoading, setNotionConfig } from '@/store/slices/userSlice';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
-interface SlackConfigPopupProps {
+interface NotionConfigPopupProps {
   visible: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function SlackConfigPopup({ visible, onClose, onSuccess }: SlackConfigPopupProps) {
+export function NotionConfigPopup({ visible, onClose, onSuccess }: NotionConfigPopupProps) {
   const dispatch = useAppDispatch();
-  const { slackConfig, loading } = useAppSelector((state) => state.user);
-  const [token, setToken] = useState(slackConfig.token || '');
-  const [email, setEmail] = useState(slackConfig.email || '');
+  const { notionConfig, slackConfig, loading } = useAppSelector((state) => state.user);
+  const [secret, setSecret] = useState(notionConfig.secret || '');
+  const [pageId, setPageId] = useState(notionConfig.pageId || '');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
-    if (!token) {
-      setError('Slack token is required');
+    if (!secret || !pageId) {
+      setError('Notion secret and page ID are required');
+      return;
+    }
+
+    if (!slackConfig.email) {
+      setError('Please configure Slack first');
       return;
     }
 
@@ -32,23 +36,23 @@ export function SlackConfigPopup({ visible, onClose, onSuccess }: SlackConfigPop
     setError(null);
 
     try {
-      const result = await slackConfigApi.verifySlackConfig({ token, email });
+      const result = await settingsApi.validateNotionConnection(secret, pageId);
       if (result.success) {
-        // Update Slack settings in the backend
-        await settingsApi.updateSlackSettings(email, token);
-
-        dispatch(setSlackConfig({
-          token,
-          email,
+        // Update Notion settings in the backend
+        await settingsApi.updateNotionSettings(slackConfig.email, secret, pageId);
+        
+        dispatch(setNotionConfig({
+          secret,
+          pageId,
           isVerified: true
         }));
         onSuccess();
         onClose();
       } else {
-        setError('Failed to verify Slack configuration');
+        setError('Failed to verify Notion configuration');
       }
     } catch (err) {
-      setError('An error occurred while verifying Slack configuration');
+      setError('An error occurred while verifying Notion configuration');
     } finally {
       dispatch(setLoading(false));
     }
@@ -63,22 +67,21 @@ export function SlackConfigPopup({ visible, onClose, onSuccess }: SlackConfigPop
     >
       <View style={styles.overlay}>
         <Card style={styles.popup}>
-          <Text variant="h2" style={styles.title}>Slack Configuration</Text>
+          <Text variant="h2" style={styles.title}>Notion Configuration</Text>
 
           <TextInput
-            label="Slack Token"
-            value={token}
-            onChangeText={setToken}
-            placeholder="Enter your Slack token"
+            label="Notion Secret"
+            value={secret}
+            onChangeText={setSecret}
+            placeholder="Enter your Notion secret"
             style={styles.input}
           />
 
           <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="Enter your email"
-            keyboardType="email-address"
+            label="Page ID"
+            value={pageId}
+            onChangeText={setPageId}
+            placeholder="Enter your Notion page ID"
             style={styles.input}
           />
 

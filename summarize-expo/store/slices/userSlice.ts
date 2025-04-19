@@ -11,6 +11,8 @@ interface UserState {
     pageId: string | null;
     isVerified: boolean;
   };
+  schedulePeriod?: string;
+  channels?: string[];
   loading: boolean;
   error: string | null;
 }
@@ -26,6 +28,8 @@ const initialState: UserState = {
     pageId: null,
     isVerified: false,
   },
+  schedulePeriod: 'daily',
+  channels: [],
   loading: false,
   error: null,
 };
@@ -50,6 +54,12 @@ const userSlice = createSlice({
       state.slackConfig = initialState.slackConfig;
       state.notionConfig = initialState.notionConfig;
     },
+    setSchedulePeriod: (state, action: PayloadAction<string>) => {
+      state.schedulePeriod = action.payload;
+    },
+    setChannels: (state, action: PayloadAction<string[]>) => {
+      state.channels = action.payload;
+    },
   },
 });
 
@@ -58,7 +68,9 @@ export const {
   setNotionConfig,
   setLoading,
   setError,
-  logout
+  logout,
+  setSchedulePeriod,
+  setChannels,
 } = userSlice.actions;
 
 export default userSlice.reducer;

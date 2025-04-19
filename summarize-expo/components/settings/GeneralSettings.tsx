@@ -17,7 +17,7 @@ export function GeneralSettings({
   return (
     <View style={styles.section}>
       <Text variant="h2">General</Text>
-      <Card>
+      <Card style={{ marginTop: 16 }}>
         <View style={styles.settingRow}>
           <Text>Push Notifications</Text>
           <Switch

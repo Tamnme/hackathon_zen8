@@ -1,4 +1,4 @@
-import { userApi } from '@/api/user';
+import { slackConfigApi } from '@/api/slack';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setError, setLoading, setSlackConfig } from '@/store/slices/userSlice';
 import { useEffect } from 'react';
@@ -17,7 +17,7 @@ export function useSlackConfig() {
 
       try {
         dispatch(setLoading(true));
-        const result = await userApi.verifySlackConfig({
+        const result = await slackConfigApi.verifySlackConfig({
           token: slackConfig.token,
           email: slackConfig.email,
         });
@@ -36,10 +36,10 @@ export function useSlackConfig() {
     verifyStoredCredentials();
   }, [slackConfig.token, slackConfig.email]);
 
-  const status: SlackStatus = !slackConfig.token || !slackConfig.email 
-    ? 'unverified' 
-    : slackConfig.isVerified 
-      ? 'success' 
+  const status: SlackStatus = !slackConfig.token || !slackConfig.email
+    ? 'unverified'
+    : slackConfig.isVerified
+      ? 'success'
       : 'error';
 
   return { status, loading };
