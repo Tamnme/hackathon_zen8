@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+---
+description: Enforces the recommended folder structure for React Native Expo projects at the root level, including assets, src, App.js, and app.json.
+globs: *.*
+---
+- Ensure the following folder structure is present:
+  - assets/ - For static assets like images, fonts, etc.
+  - app/ - Main application directory using Expo Router
+    - (tabs)/ - Tab-based navigation screens
+    - _layout.tsx - Root layout configuration
+    - +not-found.tsx - 404 page
+  - components/ - Reusable UI components
+  - hooks/ - Custom React hooks
+  - constants/ - Application constants and configuration
+  - api/ - handle network connections
+  - scripts/ - Build and utility scripts
+  - App.js - Main application entry point
+  - app.json - Expo configuration
+  - tsconfig.json - TypeScript configuration
+  - package.json - Project dependencies and scripts
