@@ -64,6 +64,56 @@ python run.py
 
 The API will be available at `http://localhost:8080`.
 
+### Docker Setup
+
+#### Prerequisites
+- Docker
+- Docker Compose
+
+#### Running with Docker Compose
+
+1. Copy the example environment file and modify as needed:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Update the environment variables in `.env` file with your Notion API credentials:
+   ```
+   NOTION_API_KEY=your_notion_api_key_here
+   NOTION_DATABASE_ID=your_notion_database_id_here
+   ```
+
+3. Build and start the containers:
+   ```bash
+   docker-compose up -d
+   ```
+
+   This will start:
+   - The Flask application on port 8080
+   - PostgreSQL database on port 5432
+
+4. Check the container status:
+   ```bash
+   docker-compose ps
+   ```
+
+5. View logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. Stop the containers:
+   ```bash
+   docker-compose down
+   ```
+
+7. To completely reset (including database volume):
+   ```bash
+   docker-compose down -v
+   ```
+
+The API will be available at `http://localhost:8080`.
+
 ## API Endpoints
 
 ### App Settings

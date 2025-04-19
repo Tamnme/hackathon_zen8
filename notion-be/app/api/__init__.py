@@ -7,3 +7,4 @@ from app.api import app_settings
 from app.api import trigger_settings
 from app.api import summary
 from app.api import notion_validation
+from app.api import health
