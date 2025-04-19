@@ -3,16 +3,31 @@ from app.api import api_bp
 from app.models import db
 from app.models.trigger_setting import TriggerSetting
 from datetime import date
+import json
 
 @api_bp.route('/trigger-settings', methods=['GET'])
 def get_trigger_settings():
-    """Get trigger settings for an email."""
+    """Get trigger settings for an email. Creates default settings if none exist."""
     email = request.args.get('email')
     
     if not email:
         return jsonify({"error": "Email parameter is required"}), 400
     
     settings = TriggerSetting.query.filter_by(email=email).all()
+    
+    # If no settings exist for this email, create default trigger settings
+    if not settings:
+        default_setting = TriggerSetting(
+            email=email,
+            channels=json.dumps([]),  # Empty array as default
+            start_date=None,
+            end_date=None
+        )
+        
+        db.session.add(default_setting)
+        db.session.commit()
+        
+        return jsonify([default_setting.to_dict()]), 200
     
     return jsonify([setting.to_dict() for setting in settings]), 200
 
@@ -24,9 +39,12 @@ def create_trigger_setting():
     if not data or 'email' not in data:
         return jsonify({"error": "Email is a required field"}), 400
     
+    # Convert channels to JSON string if it's an array
+    channels_json = json.dumps(data.get('channels', [])) if isinstance(data.get('channels'), list) else data.get('channels')
+    
     new_setting = TriggerSetting(
         email=data['email'],
-        channels=data.get('channels'),
+        channels=channels_json,
         start_date=date.fromisoformat(data['start_date']) if 'start_date' in data and data['start_date'] else None,
         end_date=date.fromisoformat(data['end_date']) if 'end_date' in data and data['end_date'] else None
     )
@@ -51,7 +69,8 @@ def update_trigger_setting(setting_id):
     
     # Update fields
     if 'channels' in data:
-        setting.channels = data['channels']
+        # Convert channels to JSON string if it's an array
+        setting.channels = json.dumps(data['channels']) if isinstance(data['channels'], list) else data['channels']
     if 'start_date' in data and data['start_date']:
         setting.start_date = date.fromisoformat(data['start_date'])
     if 'end_date' in data and data['end_date']:

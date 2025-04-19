@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 from notion_client import Client
 from notion_client.errors import APIResponseError
-from notion_client_manager import NotionManager
+from app.services.notion_client_manager import NotionManager
 from datetime import datetime
 
 def setup_env():

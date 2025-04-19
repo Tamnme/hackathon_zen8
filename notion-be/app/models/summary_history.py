@@ -1,6 +1,7 @@
 from app.models import db
 from datetime import datetime
 from enum import Enum
+import json
 
 class StatusEnum(str, Enum):
     START = "start"
@@ -23,12 +24,13 @@ class SummaryHistory(db.Model):
         return f"<SummaryHistory id={self.id}, email={self.email}, status={self.status}>"
     
     def to_dict(self):
+        channels_array = json.loads(self.channels) if self.channels else []
         return {
             'id': self.id,
             'email': self.email,
             'status': self.status,
             'start_time': self.start_time.isoformat() if self.start_time else None,
             'end_time': self.end_time.isoformat() if self.end_time else None,
-            'channels': self.channels,
+            'channels': channels_array,
             'notion_page_url': self.notion_page_url
         } 

@@ -1,5 +1,6 @@
 from app.models import db
 from datetime import date
+import json
 
 class TriggerSetting(db.Model):
     __tablename__ = 'trigger_settings'
@@ -14,10 +15,11 @@ class TriggerSetting(db.Model):
         return f"<TriggerSetting id={self.id}, email={self.email}>"
     
     def to_dict(self):
+        channels_array = json.loads(self.channels) if self.channels else []
         return {
             'id': self.id,
             'email': self.email,
-            'channels': self.channels,
+            'channels': channels_array,
             'start_date': self.start_date.isoformat() if self.start_date else None,
             'end_date': self.end_date.isoformat() if self.end_date else None
         } 

@@ -1,10 +1,15 @@
 import json
 import pytest
+from unittest.mock import patch
 from app.models.app_setting import AppSetting
 from app.models.summary_history import SummaryHistory
 
-def test_trigger_summary(client, db):
+@patch('app.api.summary.create_notion_summary')
+def test_trigger_summary(mock_create_notion_summary, client, db):
     """Test triggering a summary process."""
+    # Mock the Notion API call
+    mock_create_notion_summary.return_value = {"success": True, "page_url": "https://notion.so/test-page"}
+    
     # Create app settings first (required for the trigger)
     email = "trigger-test@example.com"
     app_setting = AppSetting(
@@ -12,7 +17,8 @@ def test_trigger_summary(client, db):
         schedule_period="daily",
         default_channels="channel1",
         slack_token="test-token",
-        notion_secret="test-secret"
+        notion_secret="test-secret",
+        notion_page_id="test-page-id"
     )
     db.session.add(app_setting)
     db.session.commit()

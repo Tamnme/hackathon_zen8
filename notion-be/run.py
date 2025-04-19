@@ -1,19 +1,11 @@
-#!/usr/bin/env python3
-import uvicorn
-from dotenv import load_dotenv
-import os
+from app import create_app
+from app.models import db
 
-# Load environment variables
-load_dotenv()
+app = create_app()
 
-if __name__ == "__main__":
-    # Get port from environment variable or use default
-    port = int(os.getenv("PORT", 8000))
-    
-    # Run the server
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True
-    ) 
+# Create the database tables if they don't exist yet
+with app.app_context():
+    db.create_all()
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=8080) 

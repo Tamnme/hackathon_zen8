@@ -1,4 +1,5 @@
 from app.models import db
+import json
 
 class AppSetting(db.Model):
     __tablename__ = 'app_settings'
@@ -15,10 +16,11 @@ class AppSetting(db.Model):
         return f"<AppSetting email={self.email}>"
     
     def to_dict(self):
+        default_channels_array = json.loads(self.default_channels) if self.default_channels else []
         return {
             'email': self.email,
             'schedule_period': self.schedule_period,
-            'default_channels': self.default_channels,
+            'default_channels': default_channels_array,
             'get_notion_page': self.get_notion_page,
             'slack_token': self.slack_token,
             'notion_secret': self.notion_secret,
