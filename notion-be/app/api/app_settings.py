@@ -19,7 +19,7 @@ def get_app_setting():
         default_setting = AppSetting(
             email=email,
             schedule_period="daily",
-            default_channels=json.dumps([]),  # Empty array as default
+            default_channels=[],  # Empty array as default
             get_notion_page="method1",
             slack_token="",
             notion_secret="",
@@ -44,9 +44,6 @@ def create_app_setting():
     # Check if settings already exist for this email
     existing = AppSetting.query.get(data['email'])
     
-    # Convert default_channels to JSON string if it's an array
-    default_channels_json = json.dumps(data.get('default_channels', [])) if isinstance(data.get('default_channels'), list) else data.get('default_channels')
-    
     if existing:
         # Update existing settings
         if 'slack_token' in data:
@@ -55,6 +52,8 @@ def create_app_setting():
             existing.notion_secret = data['notion_secret']
         if 'notion_page_id' in data:
             existing.notion_page_id = data['notion_page_id']
+        if 'default_channels' in data:
+            existing.default_channels = data['default_channels']
         
         db.session.commit()
         return jsonify(existing.to_dict()), 200
@@ -63,7 +62,7 @@ def create_app_setting():
     new_setting = AppSetting(
         email=data['email'],
         schedule_period=data.get('schedule_period'),
-        default_channels=default_channels_json,
+        default_channels=data.get('default_channels', []),
         get_notion_page=data.get('get_notion_page'),
         slack_token=data.get('slack_token', ''),
         notion_secret=data.get('notion_secret', ''),
@@ -92,8 +91,7 @@ def update_app_setting(email):
     if 'schedule_period' in data:
         setting.schedule_period = data['schedule_period']
     if 'default_channels' in data:
-        # Convert default_channels to JSON string if it's an array
-        setting.default_channels = json.dumps(data['default_channels']) if isinstance(data['default_channels'], list) else data['default_channels']
+        setting.default_channels = data['default_channels']
     if 'get_notion_page' in data:
         setting.get_notion_page = data['get_notion_page']
     if 'slack_token' in data:

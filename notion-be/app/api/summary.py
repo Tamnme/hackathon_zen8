@@ -5,6 +5,24 @@ from app.models.summary_history import SummaryHistory, StatusEnum
 from app.models.app_setting import AppSetting
 from datetime import datetime
 from app.services.add_content_to_database import create_notion_summary
+
+@api_bp.route('/summary/latest', methods=['GET'])
+def get_latest_summary_history():
+    """Get the latest summary history for an email."""
+    email = request.args.get('email')
+    
+    if not email:
+        return jsonify({"error": "Email parameter is required"}), 400
+    
+    latest_history = SummaryHistory.query.filter_by(email=email) \
+                                    .order_by(SummaryHistory.start_time.desc()) \
+                                    .first()
+    
+    if not latest_history:
+        return jsonify({"error": "No summary history found for this email"}), 404
+        
+    return jsonify(latest_history.to_dict()), 200
+
 @api_bp.route('/summary/trigger', methods=['POST'])
 def trigger_summary():
     """Trigger a summary process."""

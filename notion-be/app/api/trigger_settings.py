@@ -19,7 +19,7 @@ def get_trigger_settings():
     if not settings:
         default_setting = TriggerSetting(
             email=email,
-            channels=json.dumps([]),  # Empty array as default
+            channels=[],  # Empty array as default
             start_date=None,
             end_date=None
         )
@@ -39,12 +39,9 @@ def create_trigger_setting():
     if not data or 'email' not in data:
         return jsonify({"error": "Email is a required field"}), 400
     
-    # Convert channels to JSON string if it's an array
-    channels_json = json.dumps(data.get('channels', [])) if isinstance(data.get('channels'), list) else data.get('channels')
-    
     new_setting = TriggerSetting(
         email=data['email'],
-        channels=channels_json,
+        channels=data.get('channels', []),
         start_date=date.fromisoformat(data['start_date']) if 'start_date' in data and data['start_date'] else None,
         end_date=date.fromisoformat(data['end_date']) if 'end_date' in data and data['end_date'] else None
     )
@@ -69,8 +66,7 @@ def update_trigger_setting(setting_id):
     
     # Update fields
     if 'channels' in data:
-        # Convert channels to JSON string if it's an array
-        setting.channels = json.dumps(data['channels']) if isinstance(data['channels'], list) else data['channels']
+        setting.channels = data['channels']
     if 'start_date' in data and data['start_date']:
         setting.start_date = date.fromisoformat(data['start_date'])
     if 'end_date' in data and data['end_date']:
