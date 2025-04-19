@@ -18,6 +18,27 @@ def get_latest_summary_history():
     
     if not email:
         return jsonify({"error": "Email parameter is required"}), 400
+
+    # First try to get latest by end_time
+    latest_by_end_time = SummaryHistory.query.filter_by(email=email) \
+                                    .order_by(SummaryHistory.end_time.desc()) \
+                                    .first()
+    
+    # Then try to get latest by start_time
+    latest_by_start_time = SummaryHistory.query.filter_by(email=email) \
+                                    .order_by(SummaryHistory.start_time.desc()) \
+                                    .first()
+    
+    # Compare timestamps and return the most recent one
+    if latest_by_end_time and latest_by_start_time:
+        end_time = latest_by_end_time.end_time or datetime.min
+        start_time = latest_by_start_time.start_time or datetime.min
+        return jsonify(latest_by_start_time.to_dict() if start_time > end_time 
+                      else latest_by_end_time.to_dict()), 200
+    elif latest_by_end_time:
+        return jsonify(latest_by_end_time.to_dict()), 200
+    elif latest_by_start_time:
+        return jsonify(latest_by_start_time.to_dict()), 200
     
     latest_history = SummaryHistory.query.filter_by(email=email) \
                                     .order_by(SummaryHistory.end_time.desc()) \
@@ -62,7 +83,8 @@ def trigger_summary():
     # Extract only the necessary values from app_setting instead of passing the ORM object
     app_setting_data = {
         'notion_secret': app_setting.notion_secret,
-        'notion_page_id': app_setting.notion_page_id
+        'notion_page_id': app_setting.notion_page_id,
+        'slack_token': app_setting.slack_token
     }
     
     # Get the summary ID to use in the background thread
@@ -86,6 +108,25 @@ def trigger_summary():
         "summary": new_summary.to_dict()
     }), 202
 
+
+def fetch_slack_messages(token, channels, limit, oldest, latest):
+    url = "https://slack-crawl.vercel.app/crawl"
+    params = {
+        "token": token,
+        "channels": channels,
+        "limit": limit,
+        "oldest": oldest,
+        "lastest": latest
+    }
+
+    try:
+        response = pip._vendor.requests.get(url, params=params)
+        response.raise_for_status()  # Raise an error for bad HTTP status
+        return response.json()
+    except pip._vendor.requests.RequestException as e:
+        print(f"Error fetching Slack messages: {e}")
+        return None
+
 def process_summary(data, app_setting_data, summary_id):
     """Process summary in background thread"""
     print("Processing summary: ", summary_id)
@@ -106,44 +147,42 @@ def process_summary(data, app_setting_data, summary_id):
     try:
         notion_api_key = app_setting_data['notion_secret']
         notion_database_id = app_setting_data['notion_page_id']
+        slack_token = app_setting_data['slack_token']
 
-        if not notion_api_key or not notion_database_id:
+        if not notion_api_key or not notion_database_id or not slack_token:
             new_summary.status = StatusEnum.FAILED
             new_summary.end_time = datetime.utcnow()
             db.session.add(new_summary)
             db.session.commit()
             print("Error: ", "Missing app setting")
             return
+        
+        slack_messages = fetch_slack_messages(slack_token, "C08MUTY5MN1", 10, 1744473355, 1745078155)
+        if not slack_messages:
+            new_summary.status = StatusEnum.FAILED
+            new_summary.end_time = datetime.utcnow()
+            db.session.add(new_summary)
+            db.session.commit()
+            print("Error: ", "Slack messages not found")
+            return
 
         # Get title and content from request data
         title = data.get("title", datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        content = '''# Welcome to Notion API Demo
-        
-This is a demonstration of the Notion API integration with Python. Let me show you some basic Notion elements:
- 
-## Key Features
-- ✅ Create pages and databases
-- ✅ Add rich text content
-- ✅ Manage tasks and projects
- 
-### Task List:
-- [ ] Learn Notion API basics
-- [ ] Build a simple integration
-- [ ] Test database operations
-- [ ] Share with team members
- 
-Feel free to explore and customize this template for your needs!'''
+        content = slack_messages
+        print("Content: ", slack_messages)
 
-        # result = post_chat_request("Hi");
-        # print("Result: ", result)
-        # if result.get('error'):
-        #     new_summary.status = StatusEnum.FAILED
-        #     new_summary.end_time = datetime.utcnow()
-        #     print("Error: ", result.get('error'))
-        #     db.session.add(new_summary)
-        #     db.session.commit()
-        #     return 
-        # print("pass chat request")
+        result = post_chat_request(content);
+        content = result['message']['content']
+        print("Result: ", result)
+        if is_markdown_empty(content) or result.get('error'):
+            new_summary.status = StatusEnum.FAILED
+            new_summary.end_time = datetime.utcnow()
+            print("Error: markdown empty or chat request failed ", result.get('error'))
+            db.session.add(new_summary)
+            db.session.commit()
+            return 
+        print("pass chat request")
+
         # Create summary in Notion
         notion_result = create_notion_summary(
             api_key=notion_api_key,
@@ -177,7 +216,7 @@ Feel free to explore and customize this template for your needs!'''
 
 def post_chat_request(user_content: str) -> dict:
     """
-    Post chat request to local Ollama API endpoint.
+    Post chat request to API endpoint.
     
     Args:
         user_content: The user content to process
@@ -191,7 +230,7 @@ def post_chat_request(user_content: str) -> dict:
         
         # Make POST request to Ollama API
         response = pip._vendor.requests.post(
-            'http://192.168.1.49:11434/api/chat',
+            'http://18.142.243.64:11434/api/chat',
             data=payload.encode('utf-8'),
             headers={'Content-Type': 'application/json;'},
         )
@@ -211,6 +250,42 @@ def post_chat_request(user_content: str) -> dict:
     except Exception as e:
         current_app.logger.error(f"Unexpected error in post_chat_request: {str(e)}")
         return {"error": str(e)}
+import re
+
+def is_markdown_empty(content: str) -> bool:
+    """
+    Check if content contains any markdown formatted content.
+    
+    Args:
+        content: The string content to check
+        
+    Returns:
+        bool: True if no markdown content found, False otherwise
+    """
+    # Check for common markdown patterns
+    markdown_patterns = [
+        r'#+ .*',           # Headers
+        r'\[[ x]\]',        # Task lists
+        r'- .*',            # Unordered lists
+        r'\d+\. .*',        # Ordered lists
+        r'\*\*.*\*\*',      # Bold text
+        r'`.*`',            # Code blocks
+        r'\[.*\]\(.*\)',    # Links
+        r'\|.*\|'           # Tables
+    ]
+    
+    # Strip whitespace
+    content = content.strip()
+    if not content:
+        return True
+        
+    # Check each pattern
+    for pattern in markdown_patterns:
+        if re.search(pattern, content):
+            return False
+            
+    return True
+
 
 def generate_request_payload(user_content: str) -> str:
     template = {
