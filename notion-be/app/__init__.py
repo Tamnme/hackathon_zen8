@@ -20,7 +20,7 @@ def create_app(config_class=Config):
     # Simple root route for health check
     @app.route('/')
     def health_check():
-        return {'status': 'ok', 'version': '1.0.0', 'db_url': app.config['SQLALCHEMY_DATABASE_URI'] is not None}
+        return {'status': 'ok', 'version': '1.0.0'}
     
     # Redirect for notion API endpoints
     @app.route('/notion/validate-connection', methods=['POST'])

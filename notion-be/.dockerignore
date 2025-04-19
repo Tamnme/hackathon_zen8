@@ -1,63 +1,33 @@
-# Git
+# Version control
 .git
 .gitignore
-.github
 
-# Python
+# Python cache files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-*.egg-info/
-.installed.cfg
-*.egg
-venv/
-.venv/
 .pytest_cache/
-.coverage
-htmlcov/
 
-# Docker specific
-Dockerfile
-docker-compose.yml
-.dockerignore
+# Virtual environment
+venv/
+env/
+ENV/
 
-# Editors and IDEs
+# IDE specific files
 .idea/
 .vscode/
-.cursor/
 *.swp
 *.swo
-*~
-
-# OS files
 .DS_Store
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+.cursor/
 
-# Application specific
-*.db
-app.db
-instance/
+# Local development
 .env
-.env.*
-!.env.example
+app.db
+*.db
+*.sqlite3
 
-# Documentation
-README.md
-Requirement.md 
+# Distribution / packaging
+dist/
+build/
+*.egg-info/ 
