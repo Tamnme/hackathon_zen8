@@ -27,4 +27,13 @@ def create_app(config_class=Config):
     def redirect_notion_validate():
         return redirect('/api/notion/validate-connection', code=307)
     
+    # Add redirects for app-settings routes
+    @app.route('/app-settings/notion', methods=['PUT'])
+    def redirect_app_settings_notion():
+        return redirect('/api/app-settings/notion', code=307)
+    
+    @app.route('/app-settings/slack', methods=['PUT'])
+    def redirect_app_settings_slack():
+        return redirect('/api/app-settings/slack', code=307)
+    
     return app 
