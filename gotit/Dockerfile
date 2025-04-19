@@ -25,5 +25,8 @@ ENV PYTHONUNBUFFERED=1
 # Create a directory for logs
 RUN mkdir -p /app/logs
 
-# Set the entrypoint
-ENTRYPOINT ["python", "main.py"] 
+# Expose the port the app runs on
+EXPOSE 8000
+
+# Set the entrypoint to run the API server
+ENTRYPOINT ["python", "main.py", "--api"] 
