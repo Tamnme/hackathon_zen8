@@ -3,17 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from './ui/Text';
 
 interface StatusIndicatorProps {
-  status: 'online' | 'offline' | 'success' | 'error';
+  status: 'success' | 'error' | 'unverified';
   label?: string;
 }
 
 export function StatusIndicator({ status, label }: StatusIndicatorProps) {
   const getStatusColor = () => {
     switch (status) {
-      case 'online':
       case 'success':
         return '#34C759';
-      case 'offline':
       case 'error':
         return '#FF3B30';
       default:

@@ -2,10 +2,20 @@ import { LastRun } from '@/components/home/LastRun';
 import { QuickActions } from '@/components/home/QuickActions';
 import { SystemStatus } from '@/components/home/SystemStatus';
 import { Text } from '@/components/ui/Text';
+import { useAppSelector } from '@/store';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 export default function HomeScreen() {
+  const { slackConfig } = useAppSelector((state) => state.user);
+
+  const slackStatus: 'success' | 'error' | 'unverified' = 
+    !slackConfig.token || !slackConfig.email 
+      ? 'unverified' 
+      : slackConfig.isVerified 
+        ? 'success' 
+        : 'error';
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -32,9 +42,10 @@ export default function HomeScreen() {
       />
 
       <SystemStatus
-        slackStatus="success"
         notionStatus="success"
-        aiStatus="success"
+        onSlackConfigChange={(status) => {
+          // Handle Slack config change if needed
+        }}
       />
     </View>
   );

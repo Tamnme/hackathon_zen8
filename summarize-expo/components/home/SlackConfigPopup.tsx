@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Text } from '@/components/ui/Text';
 import { TextInput } from '@/components/ui/TextInput';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { setLoading, setSlackConfig } from '@/store/slices/userSlice';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
@@ -13,9 +15,10 @@ interface SlackConfigPopupProps {
 }
 
 export function SlackConfigPopup({ visible, onClose, onSuccess }: SlackConfigPopupProps) {
-  const [token, setToken] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { slackConfig, loading } = useAppSelector((state) => state.user);
+  const [token, setToken] = useState(slackConfig.token || '');
+  const [email, setEmail] = useState(slackConfig.email || '');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async () => {
@@ -24,21 +27,26 @@ export function SlackConfigPopup({ visible, onClose, onSuccess }: SlackConfigPop
       return;
     }
 
-    setLoading(true);
+    dispatch(setLoading(true));
     setError(null);
 
     try {
       const result = await userApi.verifySlackConfig({ token, email });
-      if (result.success) {
+      if (result) {
+        dispatch(setSlackConfig({
+          token,
+          email,
+          isVerified: true
+        }));
         onSuccess();
         onClose();
       } else {
-        setError(result.message || 'Failed to verify Slack configuration');
+        setError('Failed to verify Slack configuration');
       }
     } catch (err) {
       setError('An error occurred while verifying Slack configuration');
     } finally {
-      setLoading(false);
+      dispatch(setLoading(false));
     }
   };
 

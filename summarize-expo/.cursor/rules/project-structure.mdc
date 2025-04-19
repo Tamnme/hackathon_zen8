@@ -18,6 +18,7 @@ globs: *.*
   - constants/ - Application constants and configuration
   - api/ - handle network connections
   - scripts/ - Build and utility scripts
+  - utils/ - Utilities files
   - App.js - Main application entry point
   - app.json - Expo configuration
   - tsconfig.json - TypeScript configuration
