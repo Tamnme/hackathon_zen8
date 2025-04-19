@@ -14,9 +14,6 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV FLASK_APP=run.py
 
-# Create database tables
-RUN python3 -c "from app import create_app; from app.models import db; app = create_app(); app.app_context().push(); db.create_all()"
-
 # Expose the port the app runs on
 EXPOSE 8080
 
