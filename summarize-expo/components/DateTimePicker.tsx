@@ -18,7 +18,11 @@ export default function DateTimePicker({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(value);
 
   const handleChange = (event: any, date?: Date) => {
-    setShow(Platform.OS === 'ios');
+    // Hide the picker on Android after selection
+    if (Platform.OS === 'android') {
+      setShow(false);
+    }
+    
     if (date) {
       setSelectedDate(date);
       onChange?.(date);
@@ -39,11 +43,13 @@ export default function DateTimePicker({
         <Text>{formatDate(selectedDate)}</Text>
       </TouchableOpacity>
 
-      {show && (
+      {(show || Platform.OS === 'ios') && (
         <RNDateTimePicker
           value={selectedDate || new Date()}
           mode={mode}
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={handleChange}
+          testID="dateTimePicker"
         />
       )}
     </>

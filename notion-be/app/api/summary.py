@@ -171,7 +171,7 @@ def process_summary(data, app_setting_data, summary_id):
         content = slack_messages
         print("Content: ", slack_messages)
 
-        result = post_chat_request(content);
+        result = send_analysis_request(content);
         content = result['message']['content']
         print("Result: ", result)
         if is_markdown_empty(content) or result.get('error'):
@@ -227,10 +227,10 @@ def post_chat_request(user_content: str) -> dict:
     try:
         # Generate the request payload
         payload = generate_request_payload(user_content)
-        
+        print("Payload: ", payload)
         # Make POST request to Ollama API
         response = pip._vendor.requests.post(
-            'http://18.142.243.64:11434/api/chat',
+            'http://18.142.243.64:5000/analyze_messages',
             data=payload.encode('utf-8'),
             headers={'Content-Type': 'application/json;'},
         )
@@ -243,13 +243,13 @@ def post_chat_request(user_content: str) -> dict:
         
     except pip._vendor.requests.RequestException as e:
         current_app.logger.error(f"Error making request to API: {str(e)}")
-        return {"error": str(e)}
+        return {"error": str(e.response.text)}
     except json.JSONDecodeError as e:
         current_app.logger.error(f"Error decoding JSON response: {str(e)}")
         return {"error": "Invalid JSON response"}
     except Exception as e:
         current_app.logger.error(f"Unexpected error in post_chat_request: {str(e)}")
-        return {"error": str(e)}
+        return {"error Unexpected": str(e)}
 import re
 
 def is_markdown_empty(content: str) -> bool:
@@ -286,40 +286,95 @@ def is_markdown_empty(content: str) -> bool:
             
     return True
 
+# --- Configuration ---
+# Replace with your EC2 instance's public IP address and the correct port (5000)
+EC2_PUBLIC_IP = "18.142.243.64" # !! IMPORTANT: Replace with your actual IP !!
+PORT = 5000
+ENDPOINT = "/analyze_messages"
+
+# Construct the base URL (kept outside the function as it's likely constant)
+BASE_URL = f"http://{EC2_PUBLIC_IP}:{PORT}{ENDPOINT}"
+
+def send_analysis_request(payload: dict):
+    """
+    Sends an analysis request to the EC2 application with the given payload.
+
+    Args:
+        payload: A dictionary containing the request body data
+                 (e.g., {"target_user_name": "...", "messages_data": {...}}).
+
+    Returns:
+        The JSON response body as a Python dictionary if successful.
+        Returns None or the error response body if an error occurs.
+    """
+    print(f"Sending request to: {BASE_URL}")
+    print(f"Payload: {json.dumps(payload, indent=2)}") # Print payload being sent
+
+    try:
+        # requests.post with the json parameter automatically sets Content-Type to application/json
+        response = pip._vendor.requests.post(BASE_URL, json=generate_request_payload(payload))
+
+        # Raise an exception for bad status codes (4xx or 5xx)
+        response.raise_for_status()
+
+        # Return the JSON response body
+        print(f"\nStatus Code: {response.status_code}")
+        print("Response Body:")
+        response_json = response.json()
+        print(json.dumps(response_json, indent=2))
+        return response_json
+
+    except pip._vendor.requests.exceptions.RequestException as e:
+        print(f"\nAn error occurred during the request: {e}")
+        # Print and return the error response body if available
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response status code: {e.response.status_code}")
+            try:
+                error_response_json = e.response.json()
+                print("Error Response body:")
+                print(json.dumps(error_response_json, indent=2))
+                return error_response_json # Return the error body
+            except json.JSONDecodeError:
+                 print("Non-JSON error response body:")
+                 print(e.response.text)
+                 return {"error": f"Request failed, non-JSON response: {e.response.text}"} # Return a structured error
+        return {"error": f"Request failed: {e}"} # Return a structured error
+
+def extract_text_from_dict(data):
+    output = []
+    for key, value in data.items():
+        if isinstance(value, list):
+            for item in value:
+                output.append(item)
+    return '\n'.join(output)
 
 def generate_request_payload(user_content: str) -> str:
-    template = {
-        "model": "mistral-nemo",
-        "stream": False,
-        "messages": [
-            {
-                "role": "system",
-                "content": """Bạn là một AI trợ lý làm nhiệm vụ phân tích tin nhắn từ một đoạn JSON.
-Nhiệm vụ của bạn là:
-Mục tiêu:
-Trích xuất và tóm tắt các công việc, trách nhiệm, hành động đã thực hiện hoặc được giao cho một người dùng cụ thể dựa trên nội dung các tin nhắn.
-Tên người dùng mục tiêu: Chỉ rõ tên người dùng bạn muốn tôi tóm tắt công việc.
-Xử lý nội bộ:
-AI sẽ phân tích các tin nhắn, xác định những tin liên quan trực tiếp đến người dùng mục tiêu (do người dùng gửi, hoặc đề cập/giao việc cho người dùng đó) và tổng hợp các điểm công việc từ đó.
-Đầu ra mong muốn:
-Chỉ cung cấp bản tóm tắt công việc cho người dùng mục tiêu. 
-Markdown
-## Các nội dung Chính [Của Người Dùng]
-- [ ] Mô tả tính năng chính 1 (nếu có, công việc đang làm)
-- [x] Mô tả tính năng chính 2 (nếu có, công việc đã xong)
-- ...
+#     template = {
+#        "prompt": f"""Bạn là một AI trợ lý làm nhiệm vụ phân tích tin nhắn từ một đoạn JSON.
+# Nhiệm vụ của bạn là:
+# Mục tiêu:
+# Trích xuất và tóm tắt các công việc, trách nhiệm, hành động đã thực hiện hoặc được giao cho một người dùng cụ thể dựa trên nội dung các tin nhắn.
+# Tên người dùng mục tiêu: Chỉ rõ tên người dùng bạn muốn tôi tóm tắt công việc.
+# Xử lý nội bộ:
+# AI sẽ phân tích các tin nhắn, xác định những tin liên quan trực tiếp đến người dùng mục tiêu (do người dùng gửi, hoặc đề cập/giao việc cho người dùng đó) và tổng hợp các điểm công việc từ đó.
+# Đầu ra mong muốn:
+# Chỉ cung cấp bản tóm tắt công việc cho người dùng mục tiêu. 
+# Markdown
+# ## Các nội dung Chính [Của Người Dùng]
+# - [ ] Mô tả tính năng chính 1 (nếu có, công việc đang làm)
+# - [x] Mô tả tính năng chính 2 (nếu có, công việc đã xong)
+# - ...
 
-### Danh Sách Công Việc:
-- [ ] Mô tả công việc cụ thể 1 (đang làm)
-- [x] Mô tả công việc cụ thể 2 (đã xong/đã xử lý)
+# ### Danh Sách Công Việc:
+# - [ ] Mô tả công việc cụ thể 1 (đang làm)
+# - [x] Mô tả công việc cụ thể 2 (đã xong/đã xử lý)
 
-Sử dụng [ ] để đánh dấu công việc đang thực hiện hoặc chưa hoàn thành dựa trên ngữ cảnh tin nhắn.
-Sử dụng [x] để đánh dấu công việc đã hoàn thành hoặc đã có hành động xử lý rõ ràng được đề cập trong tin nhắn."""
-            },
-            {
-                "role": "user",
-                "content": f"Dưới đây là một danh sách tin nhắn và trình bày kết quả ở dạng markdown. Nếu không có tin nào phù hợp thì trả lời: Không tìm thấy tin nhắn nào liên quan:\n{user_content}"
-            }
-        ]
+# Sử dụng [ ] để đánh dấu công việc đang thực hiện hoặc chưa hoàn thành dựa trên ngữ cảnh tin nhắn.
+# Sử dụng [x] để đánh dấu công việc đã hoàn thành hoặc đã có hành động xử lý rõ ràng được đề cập trong tin nhắn.
+# Dưới đây là một danh sách tin nhắn và trình bày kết quả ở dạng markdown. Nếu không có tin nào phù hợp thì trả lời: Không tìm thấy tin nhắn nào liên quan:\n{extract_text_from_dict(user_content)}"""
+    # }
+    template =     {
+      "target_user_name": "User name",
+      "messages_data": user_content
     }
     return json.dumps(template, ensure_ascii=False, indent=2)
