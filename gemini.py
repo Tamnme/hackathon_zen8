@@ -1,9 +1,12 @@
 import json
 import os
 import google.generativeai as genai
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+# Define the model you want to use
+GEMINI_MODEL = 'gemini-pro' # Or your preferred Gemini model
 
 # Define your fixed prompt here
 FIXED_PROMPT = """
@@ -45,13 +48,15 @@ Sử dụng [x] để đánh dấu công việc đã hoàn thành hoặc đã c�
 Nếu không tìm thấy công việc cụ thể nào cho người dùng được chỉ định trong dữ liệu, hãy thông báo rõ điều đó.
 """
 
-@app.route('/generate', methods=['GET'])
-def generate_text():
+@app.route('/generate', methods=['POST'])
+def generate_text_with_json_only():
     """
-    Endpoint to call the Gemini API with a fixed prompt and return the response.
+    Endpoint to call the Gemini API with a fixed prompt and JSON data from the request body.
+
+    Request body should be the JSON content directly:
+    { ... your JSON object or array ... }
     """
     # Configure the Gemini API key
-    # It's recommended to get this from a secure source like environment variables
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
     if not gemini_api_key:
@@ -60,21 +65,42 @@ def generate_text():
     genai.configure(api_key=gemini_api_key)
 
     try:
-        # Initialize the generative model
-        model = genai.GenerativeModel('gemini-pro') # Or your preferred Gemini model
+        # Get JSON data directly from the request body
+        request_data = request.get_json()
 
-        # Generate content using the fixed prompt
-        response = model.generate_content(FIXED_PROMPT)
+        if request_data is None:
+            return jsonify({'error': 'Request body must be valid JSON.'}), 400
+
+        # --- Combine the fixed prompt and JSON data ---
+        # Convert the JSON content to a string and append it to the fixed prompt.
+        try:
+            json_string = json.dumps(request_data, indent=2) # Pretty print JSON in prompt
+            # Construct the final prompt sent to Gemini
+            combined_prompt = f"{FIXED_PROMPT}\n\n---\n\n{json_string}"
+        except Exception as e:
+            return jsonify({'error': f'Could not process JSON data: {str(e)}'}), 400
+        # ----------------------------------------
+
+        # Initialize the generative model
+        model = genai.GenerativeModel(GEMINI_MODEL)
+
+        # Generate content using the combined prompt
+        response = model.generate_content(combined_prompt)
 
         # Return the response
         return jsonify({
-            'input_prompt': FIXED_PROMPT,
+            'input_prompt_to_gemini': combined_prompt, # Show the actual prompt sent
+            'fixed_prompt_used': FIXED_PROMPT,
+            'input_json_data': request_data,
             'gemini_response': response.text
         })
 
     except Exception as e:
         print(f"Error calling Gemini API: {e}")
-        return jsonify({'error': f'Error calling Gemini API: {str(e)}'}), 500
+        return {
+            'statusCode': 500,
+            'body': json.dumps(f'Error calling Gemini API: {str(e)}')
+        }
 
 if __name__ == '__main__':
     # This is for local development. Gunicorn/other WSGI server will be used in Docker.
