@@ -6,7 +6,7 @@ from flask import Flask, request, jsonify
 app = Flask(__name__)
 
 # Define the model you want to use
-GEMINI_MODEL = 'gemini-pro' # Or your preferred Gemini model
+GEMINI_MODEL = 'gemini-2.5-flash-preview-04-17'
 
 # Define your fixed prompt here
 FIXED_PROMPT = """
